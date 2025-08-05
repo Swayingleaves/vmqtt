@@ -1,9 +1,0 @@
-{
-  "gossip_errors": 0,
-  "eventbus_errors": 96,
-  "connection_resets": 0,
-  "heartbeat_timeouts": 0,
-  "total_messages": 0,
-  "successful_connections": 1,
-  "failed_connections": 1
-}
