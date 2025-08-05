@@ -1,0 +1,54 @@
+server:
+  port: 8882
+
+spring:
+  application:
+    name: vmqtt-backend
+
+# gRPC服务端配置
+grpc:
+  server:
+    port: 9991
+
+# 存储配置
+storage:
+  rocksdb:
+    data-path: ./data/rocksdb
+    max-background-jobs: 8
+    max-open-files: 10000
+    block-cache-size: 256MB
+    write-buffer-size: 64MB
+
+# 消息配置
+message:
+  retention:
+    default-ttl: 86400  # 1天
+    max-ttl: 2592000    # 30天
+  batch:
+    size: 1000
+    timeout: 100ms
+
+# 缓存配置
+cache:
+  session:
+    max-size: 1000000
+    expire-after-write: 300s
+  topic:
+    max-size: 100000
+    expire-after-write: 600s
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    com.vmqtt: DEBUG
+    root: INFO

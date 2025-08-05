@@ -1,22 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <parent>
         <groupId>com.vmqtt</groupId>
         <artifactId>vmqtt-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    
-    <artifactId>vmqtt-core</artifactId>
-    <name>V-MQTT Core</name>
-    <description>Legacy vmqtt-core module (will be replaced by frontend/backend architecture)</description>
+
+    <artifactId>vmqtt-backend</artifactId>
+    <name>V-MQTT Backend</name>
+    <description>Backend server handling message routing, storage and business logic</description>
+
     <dependencies>
+        <!-- 内部依赖 -->
+        <dependency>
+            <groupId>com.vmqtt</groupId>
+            <artifactId>vmqtt-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- gRPC服务端 -->
+        <dependency>
+            <groupId>net.devh</groupId>
+            <artifactId>grpc-server-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- RocksDB -->
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+        </dependency>
+
+        <!-- 缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- 监控指标 -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
         </dependency>
 
         <!-- 测试依赖 -->
@@ -49,5 +83,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

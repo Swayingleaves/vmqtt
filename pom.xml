@@ -27,11 +27,18 @@
         <logback.version>1.4.14</logback.version>
         <junit.version>5.10.1</junit.version>
         <mockito.version>5.7.0</mockito.version>
+        <rocksdb.version>8.8.1</rocksdb.version>
+        <raft.version>1.3.12</raft.version>
+        <caffeine.version>3.1.8</caffeine.version>
+        <micrometer.version>1.12.0</micrometer.version>
     </properties>
 
     <modules>
         <module>vmqtt-common</module>
         <module>vmqtt-core</module>
+        <module>vmqtt-frontend</module>
+        <module>vmqtt-backend</module>
+        <module>vmqtt-cluster</module>
     </modules>
 
     <dependencyManagement>
@@ -88,6 +95,34 @@
                 <version>${protobuf.version}</version>
             </dependency>
 
+            <!-- RocksDB -->
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>${rocksdb.version}</version>
+            </dependency>
+
+            <!-- Raft -->
+            <dependency>
+                <groupId>com.alipay.sofa</groupId>
+                <artifactId>jraft-core</artifactId>
+                <version>${raft.version}</version>
+            </dependency>
+
+            <!-- 缓存 -->
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
+
+            <!-- 监控指标 -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-core</artifactId>
+                <version>${micrometer.version}</version>
+            </dependency>
+
             <!-- 测试依赖 -->
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
@@ -112,8 +147,8 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.11.0</version>
                     <configuration>
-                        <source>21</source>
-                        <target>21</target>
+                        <source>11</source>
+                        <target>11</target>
                         <parameters>true</parameters>
                         <compilerArgs>
                             <arg>-parameters</arg>

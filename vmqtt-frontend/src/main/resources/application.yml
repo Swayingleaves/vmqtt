@@ -1,0 +1,46 @@
+server:
+  port: 8881
+
+spring:
+  application:
+    name: vmqtt-frontend
+
+# MQTT协议配置
+mqtt:
+  server:
+    port: 1883
+    ssl-port: 8883
+    websocket-port: 8080
+  connection:
+    max-connections: 1000000
+    keep-alive: 60
+    timeout: 30
+
+# gRPC客户端配置
+grpc:
+  client:
+    backend:
+      address: 'static://localhost:9991'
+      negotiation-type: plaintext
+
+# 性能配置
+performance:
+  io-threads: 0  # 0表示使用CPU核心数*2
+  worker-threads: 0  # 0表示使用虚拟线程
+  buffer-size: 65536
+
+# 监控配置  
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    com.vmqtt: DEBUG
+    root: INFO
