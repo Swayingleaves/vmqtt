@@ -67,10 +67,20 @@ public class ClientConnection {
     private int clientPort;
     
     /**
+     * 远程地址（包含IP和端口）
+     */
+    private String remoteAddress;
+    
+    /**
      * 连接建立时间
      */
     @Builder.Default
     private LocalDateTime connectedAt = LocalDateTime.now();
+    
+    /**
+     * 连接断开时间
+     */
+    private LocalDateTime disconnectedAt;
     
     /**
      * 最后活动时间
@@ -94,7 +104,7 @@ public class ClientConnection {
      * 连接状态
      */
     @Builder.Default
-    private ConnectionState state = ConnectionState.CONNECTING;
+    private ConnectionState connectionState = ConnectionState.CONNECTING;
     
     /**
      * 连接属性（MQTT 5.0）
@@ -189,7 +199,7 @@ public class ClientConnection {
      */
     public boolean isActive() {
         return channel != null && channel.isActive() && 
-               state == ConnectionState.CONNECTED;
+               connectionState == ConnectionState.CONNECTED;
     }
     
     /**

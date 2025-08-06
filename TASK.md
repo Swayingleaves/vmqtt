@@ -77,11 +77,11 @@
 - [x] 实现MQTT 5.x协议编解码器
 - [x] 添加协议版本协商机制
 
-#### 📋 1.5 基础服务接口
-- [ ] ConnectionManager 连接管理服务
-- [ ] SessionManager 会话管理服务
-- [ ] MessageRouter 消息路由服务
-- [ ] AuthenticationService 认证服务
+#### ✅ 1.5 基础服务接口 [COMPLETED]
+- [x] ConnectionManager 连接管理服务
+- [x] SessionManager 会话管理服务
+- [x] MessageRouter 消息路由服务
+- [x] AuthenticationService 认证服务
 
 ### 🚀 第二阶段：核心功能实现 (4-5周)
 
