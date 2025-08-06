@@ -1,0 +1,288 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.vmqtt.common.grpc.service";
+option java_outer_classname = "MqttServiceProto";
+
+package vmqtt;
+
+import "google/protobuf/timestamp.proto";
+
+// MQTT消息服务定义
+service MqttMessageService {
+  // 发布消息
+  rpc PublishMessage(PublishMessageRequest) returns (PublishMessageResponse);
+  
+  // 订阅主题
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+  
+  // 取消订阅
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+  
+  // 获取保留消息
+  rpc GetRetainedMessage(GetRetainedMessageRequest) returns (GetRetainedMessageResponse);
+  
+  // 批量发布消息（性能优化）
+  rpc BatchPublishMessage(BatchPublishMessageRequest) returns (BatchPublishMessageResponse);
+}
+
+// 会话管理服务
+service MqttSessionService {
+  // 创建会话
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  
+  // 销毁会话
+  rpc DestroySession(DestroySessionRequest) returns (DestroySessionResponse);
+  
+  // 获取会话状态
+  rpc GetSessionStatus(GetSessionStatusRequest) returns (GetSessionStatusResponse);
+  
+  // 更新会话状态
+  rpc UpdateSessionStatus(UpdateSessionStatusRequest) returns (UpdateSessionStatusResponse);
+}
+
+// 集群协调服务
+service MqttClusterService {
+  // 节点注册
+  rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+  
+  // 节点心跳
+  rpc NodeHeartbeat(NodeHeartbeatRequest) returns (NodeHeartbeatResponse);
+  
+  // 数据同步
+  rpc SyncData(SyncDataRequest) returns (SyncDataResponse);
+  
+  // 获取集群状态
+  rpc GetClusterStatus(GetClusterStatusRequest) returns (GetClusterStatusResponse);
+}
+
+// 消息定义
+message MqttMessage {
+  string topic = 1;
+  bytes payload = 2;
+  int32 qos = 3;
+  bool retain = 4;
+  string message_id = 5;
+  google.protobuf.Timestamp timestamp = 6;
+  map<string, string> properties = 7; // MQTT 5.0 properties
+}
+
+// 发布消息请求
+message PublishMessageRequest {
+  MqttMessage message = 1;
+  string client_id = 2;
+  string session_id = 3;
+}
+
+message PublishMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  string message_id = 3;
+}
+
+// 批量发布消息请求
+message BatchPublishMessageRequest {
+  repeated MqttMessage messages = 1;
+  string client_id = 2;
+  string session_id = 3;
+}
+
+message BatchPublishMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated string message_ids = 3;
+  int32 successful_count = 4;
+  int32 failed_count = 5;
+}
+
+// 订阅请求
+message SubscribeRequest {
+  repeated TopicFilter topic_filters = 1;
+  string client_id = 2;
+  string session_id = 3;
+}
+
+message SubscribeResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated int32 granted_qos = 3;
+}
+
+message TopicFilter {
+  string topic = 1;
+  int32 qos = 2;
+}
+
+// 取消订阅请求
+message UnsubscribeRequest {
+  repeated string topics = 1;
+  string client_id = 2;
+  string session_id = 3;
+}
+
+message UnsubscribeResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// 获取保留消息请求
+message GetRetainedMessageRequest {
+  string topic_filter = 1;
+}
+
+message GetRetainedMessageResponse {
+  repeated MqttMessage messages = 1;
+}
+
+// 会话相关消息
+message CreateSessionRequest {
+  string client_id = 1;
+  bool clean_session = 2;
+  int32 keep_alive = 3;
+  string username = 4;
+  string password = 5;
+  map<string, string> properties = 6;
+}
+
+message CreateSessionResponse {
+  bool success = 1;
+  string error_message = 2;
+  string session_id = 3;
+  bool session_present = 4;
+}
+
+message DestroySessionRequest {
+  string session_id = 1;
+  string client_id = 2;
+}
+
+message DestroySessionResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message GetSessionStatusRequest {
+  string session_id = 1;
+}
+
+message GetSessionStatusResponse {
+  bool success = 1;
+  string error_message = 2;
+  SessionStatus status = 3;
+}
+
+message UpdateSessionStatusRequest {
+  string session_id = 1;
+  SessionStatus status = 2;
+}
+
+message UpdateSessionStatusResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message SessionStatus {
+  string session_id = 1;
+  string client_id = 2;
+  bool connected = 3;
+  google.protobuf.Timestamp last_activity = 4;
+  int32 keep_alive = 5;
+  repeated TopicFilter subscriptions = 6;
+  int64 message_count = 7;
+  int64 bytes_received = 8;
+  int64 bytes_sent = 9;
+}
+
+// 集群相关消息
+message RegisterNodeRequest {
+  string node_id = 1;
+  string node_address = 2;
+  int32 node_port = 3;
+  NodeRole role = 4;
+  map<string, string> metadata = 5;
+}
+
+message RegisterNodeResponse {
+  bool success = 1;
+  string error_message = 2;
+  string cluster_id = 3;
+}
+
+message NodeHeartbeatRequest {
+  string node_id = 1;
+  NodeMetrics metrics = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message NodeHeartbeatResponse {
+  bool success = 1;
+  string error_message = 2;
+  ClusterInfo cluster_info = 3;
+}
+
+message SyncDataRequest {
+  string source_node_id = 1;
+  string target_node_id = 2;
+  DataSyncType sync_type = 3;
+  bytes data = 4;
+  int64 sequence_number = 5;
+}
+
+message SyncDataResponse {
+  bool success = 1;
+  string error_message = 2;
+  int64 last_sequence = 3;
+}
+
+message GetClusterStatusRequest {
+  string node_id = 1;
+}
+
+message GetClusterStatusResponse {
+  bool success = 1;
+  string error_message = 2;
+  ClusterInfo cluster_info = 3;
+}
+
+// 枚举定义
+enum NodeRole {
+  UNKNOWN = 0;
+  FRONTEND = 1;
+  BACKEND = 2;
+  COORDINATOR = 3;
+}
+
+enum DataSyncType {
+  SESSIONS = 0;
+  SUBSCRIPTIONS = 1;
+  RETAINED_MESSAGES = 2;
+  CLUSTER_CONFIG = 3;
+}
+
+// 复合消息类型
+message NodeMetrics {
+  int64 connection_count = 1;
+  int64 message_rate = 2;
+  double cpu_usage = 3;
+  double memory_usage = 4;
+  double disk_usage = 5;
+  int64 uptime_seconds = 6;
+}
+
+message ClusterInfo {
+  string cluster_id = 1;
+  repeated NodeInfo nodes = 2;
+  string leader_node_id = 3;
+  int32 total_nodes = 4;
+  int32 healthy_nodes = 5;
+}
+
+message NodeInfo {
+  string node_id = 1;
+  string node_address = 2;
+  int32 node_port = 3;
+  NodeRole role = 4;
+  bool healthy = 5;
+  NodeMetrics metrics = 6;
+  google.protobuf.Timestamp last_heartbeat = 7;
+}

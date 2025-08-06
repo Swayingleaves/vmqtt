@@ -1,0 +1,302 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.vmqtt.common.grpc.storage";
+option java_outer_classname = "StorageServiceProto";
+
+package vmqtt.storage;
+
+import "google/protobuf/timestamp.proto";
+
+// 存储服务定义
+service StorageService {
+  // 存储消息
+  rpc StoreMessage(StoreMessageRequest) returns (StoreMessageResponse);
+  
+  // 批量存储消息
+  rpc BatchStoreMessage(BatchStoreMessageRequest) returns (BatchStoreMessageResponse);
+  
+  // 获取消息
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  
+  // 删除消息
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  
+  // 查询消息
+  rpc QueryMessages(QueryMessagesRequest) returns (QueryMessagesResponse);
+  
+  // 存储会话状态
+  rpc StoreSessionState(StoreSessionStateRequest) returns (StoreSessionStateResponse);
+  
+  // 获取会话状态
+  rpc GetSessionState(GetSessionStateRequest) returns (GetSessionStateResponse);
+  
+  // 删除会话状态
+  rpc DeleteSessionState(DeleteSessionStateRequest) returns (DeleteSessionStateResponse);
+  
+  // 存储订阅信息
+  rpc StoreSubscription(StoreSubscriptionRequest) returns (StoreSubscriptionResponse);
+  
+  // 获取订阅信息
+  rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
+  
+  // 删除订阅信息
+  rpc DeleteSubscription(DeleteSubscriptionRequest) returns (DeleteSubscriptionResponse);
+  
+  // 创建快照
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse);
+  
+  // 恢复快照
+  rpc RestoreSnapshot(RestoreSnapshotRequest) returns (RestoreSnapshotResponse);
+}
+
+// 消息存储请求
+message StoreMessageRequest {
+  StoredMessage message = 1;
+  StorageOptions options = 2;
+}
+
+message StoreMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  string storage_key = 3;
+}
+
+message BatchStoreMessageRequest {
+  repeated StoredMessage messages = 1;
+  StorageOptions options = 2;
+}
+
+message BatchStoreMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated string storage_keys = 3;
+  int32 successful_count = 4;
+  int32 failed_count = 5;
+}
+
+message GetMessageRequest {
+  string storage_key = 1;
+  string topic = 2;
+  string message_id = 3;
+}
+
+message GetMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  StoredMessage message = 3;
+}
+
+message DeleteMessageRequest {
+  string storage_key = 1;
+  string topic = 2;
+  string message_id = 3;
+}
+
+message DeleteMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message QueryMessagesRequest {
+  MessageQuery query = 1;
+  int32 limit = 2;
+  string page_token = 3;
+}
+
+message QueryMessagesResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated StoredMessage messages = 3;
+  string next_page_token = 4;
+  int64 total_count = 5;
+}
+
+// 会话状态存储
+message StoreSessionStateRequest {
+  SessionState session_state = 1;
+}
+
+message StoreSessionStateResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message GetSessionStateRequest {
+  string session_id = 1;
+  string client_id = 2;
+}
+
+message GetSessionStateResponse {
+  bool success = 1;
+  string error_message = 2;
+  SessionState session_state = 3;
+}
+
+message DeleteSessionStateRequest {
+  string session_id = 1;
+  string client_id = 2;
+}
+
+message DeleteSessionStateResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// 订阅信息存储
+message StoreSubscriptionRequest {
+  SubscriptionInfo subscription = 1;
+}
+
+message StoreSubscriptionResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message GetSubscriptionsRequest {
+  string client_id = 1;
+  string topic_filter = 2;
+}
+
+message GetSubscriptionsResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated SubscriptionInfo subscriptions = 3;
+}
+
+message DeleteSubscriptionRequest {
+  string client_id = 1;
+  string topic = 2;
+}
+
+message DeleteSubscriptionResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// 快照管理
+message CreateSnapshotRequest {
+  string snapshot_id = 1;
+  SnapshotType snapshot_type = 2;
+  map<string, string> metadata = 3;
+}
+
+message CreateSnapshotResponse {
+  bool success = 1;
+  string error_message = 2;
+  string snapshot_path = 3;
+  int64 snapshot_size = 4;
+}
+
+message RestoreSnapshotRequest {
+  string snapshot_id = 1;
+  string snapshot_path = 2;
+  bool force_restore = 3;
+}
+
+message RestoreSnapshotResponse {
+  bool success = 1;
+  string error_message = 2;
+  int64 restored_records = 3;
+}
+
+// 数据模型定义
+message StoredMessage {
+  string storage_key = 1;
+  string topic = 2;
+  bytes payload = 3;
+  int32 qos = 4;
+  bool retain = 5;
+  string message_id = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  string client_id = 9;
+  map<string, string> properties = 10;
+  int64 sequence_number = 11;
+}
+
+message SessionState {
+  string session_id = 1;
+  string client_id = 2;
+  bool clean_session = 3;
+  int32 keep_alive = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp last_activity = 6;
+  repeated QueuedMessage queued_messages = 7;
+  map<string, string> attributes = 8;
+  ConnectionState connection_state = 9;
+}
+
+message SubscriptionInfo {
+  string client_id = 1;
+  string topic_filter = 2;
+  int32 qos = 3;
+  google.protobuf.Timestamp created_at = 4;
+  SubscriptionOptions options = 5;
+}
+
+message QueuedMessage {
+  StoredMessage message = 1;
+  int32 retry_count = 2;
+  google.protobuf.Timestamp queued_at = 3;
+  QueuedMessageState state = 4;
+}
+
+message MessageQuery {
+  string topic_filter = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  string client_id = 4;
+  int32 min_qos = 5;
+  int32 max_qos = 6;
+  bool retain_only = 7;
+  repeated string message_ids = 8;
+}
+
+message StorageOptions {
+  int64 ttl_seconds = 1;
+  CompressionType compression = 2;
+  bool enable_checksum = 3;
+  int32 replication_factor = 4;
+}
+
+message SubscriptionOptions {
+  bool no_local = 1;
+  bool retain_as_published = 2;
+  RetainHandling retain_handling = 3;
+}
+
+// 枚举定义
+enum SnapshotType {
+  FULL = 0;
+  INCREMENTAL = 1;
+  METADATA_ONLY = 2;
+}
+
+enum CompressionType {
+  NONE = 0;
+  GZIP = 1;
+  SNAPPY = 2;
+  LZ4 = 3;
+}
+
+enum ConnectionState {
+  DISCONNECTED = 0;
+  CONNECTING = 1;
+  CONNECTED = 2;
+  DISCONNECTING = 3;
+}
+
+enum QueuedMessageState {
+  PENDING = 0;
+  DELIVERED = 1;
+  ACKNOWLEDGED = 2;
+  EXPIRED = 3;
+  FAILED = 4;
+}
+
+enum RetainHandling {
+  SEND_ON_SUBSCRIBE = 0;
+  SEND_ON_SUBSCRIBE_NEW = 1;
+  DO_NOT_SEND = 2;
+}
