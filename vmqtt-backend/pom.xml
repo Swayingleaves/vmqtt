@@ -41,6 +41,12 @@
             <artifactId>rocksdbjni</artifactId>
         </dependency>
 
+        <!-- Raft算法 -->
+        <dependency>
+            <groupId>com.alipay.sofa</groupId>
+            <artifactId>jraft-core</artifactId>
+        </dependency>
+
         <!-- 缓存 -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
