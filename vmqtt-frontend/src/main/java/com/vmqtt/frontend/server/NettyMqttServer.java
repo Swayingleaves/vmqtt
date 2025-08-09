@@ -62,17 +62,17 @@ public class NettyMqttServer {
                 initializeEventLoopGroups();
                 startTcpServer();
                 
-                if (config.isSslEnabled()) {
+                if (config.getServer().isSslEnabled()) {
                     startSslServer();
                 }
                 
                 log.info("V-MQTT服务器启动成功");
-                log.info("TCP端口: {}", config.getPort());
-                if (config.isSslEnabled()) {
-                    log.info("SSL端口: {}", config.getSslPort());
+                log.info("TCP端口: {}", config.getServer().getPort());
+                if (config.getServer().isSslEnabled()) {
+                    log.info("SSL端口: {}", config.getServer().getSslPort());
                 }
-                log.info("最大连接数: {}", config.getMaxConnections());
-                log.info("虚拟线程: {}", config.isVirtualThreadEnabled() ? "启用" : "禁用");
+                log.info("最大连接数: {}", config.getConnection().getMaxConnections());
+                log.info("虚拟线程: {}", config.getPerformance().isVirtualThreadEnabled() ? "启用" : "禁用");
                 
             } catch (Exception e) {
                 log.error("启动V-MQTT服务器失败", e);
@@ -128,20 +128,21 @@ public class NettyMqttServer {
      */
     private void initializeEventLoopGroups() {
         // 检查是否使用Epoll（Linux平台）
-        boolean useEpoll = config.isUseEpoll() && isLinux();
+        boolean useEpoll = config.getPerformance().isUseEpoll() && isLinux();
+        
+        // 计算线程数
+        int ioThreads = config.getPerformance().getIoThreads() > 0 
+            ? config.getPerformance().getIoThreads() 
+            : Runtime.getRuntime().availableProcessors() * 2;
         
         if (useEpoll) {
             log.info("使用Epoll事件循环组");
-            bossGroup = new EpollEventLoopGroup(config.getBossThreads(),
-                new DefaultThreadFactory("mqtt-boss"));
-            workerGroup = new EpollEventLoopGroup(config.getWorkerThreads(),
-                new DefaultThreadFactory("mqtt-worker"));
+            bossGroup = new EpollEventLoopGroup(1, new DefaultThreadFactory("mqtt-boss"));
+            workerGroup = new EpollEventLoopGroup(ioThreads, new DefaultThreadFactory("mqtt-worker"));
         } else {
             log.info("使用NIO事件循环组");
-            bossGroup = new NioEventLoopGroup(config.getBossThreads(),
-                new DefaultThreadFactory("mqtt-boss"));
-            workerGroup = new NioEventLoopGroup(config.getWorkerThreads(),
-                new DefaultThreadFactory("mqtt-worker"));
+            bossGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("mqtt-boss"));
+            workerGroup = new NioEventLoopGroup(ioThreads, new DefaultThreadFactory("mqtt-worker"));
         }
     }
     
@@ -151,49 +152,53 @@ public class NettyMqttServer {
     private void startTcpServer() throws InterruptedException {
         ServerBootstrap bootstrap = createServerBootstrap();
         
-        ChannelFuture future = bootstrap.bind(config.getPort()).sync();
+        ChannelFuture future = bootstrap.bind(config.getServer().getPort()).sync();
         serverChannel = future.channel();
         
-        log.info("MQTT TCP服务器已绑定到端口: {}", config.getPort());
+        log.info("MQTT TCP服务器已绑定到端口: {}", config.getServer().getPort());
     }
     
     /**
      * 启动SSL服务器
      */
     private void startSslServer() throws InterruptedException {
-        if (!config.isSslEnabled()) {
+        if (!config.getServer().isSslEnabled()) {
             return;
         }
         
         ServerBootstrap sslBootstrap = createServerBootstrap();
         
-        ChannelFuture future = sslBootstrap.bind(config.getSslPort()).sync();
+        ChannelFuture future = sslBootstrap.bind(config.getServer().getSslPort()).sync();
         sslServerChannel = future.channel();
         
-        log.info("MQTT SSL服务器已绑定到端口: {}", config.getSslPort());
+        log.info("MQTT SSL服务器已绑定到端口: {}", config.getServer().getSslPort());
     }
     
     /**
      * 创建服务器引导配置
      */
     private ServerBootstrap createServerBootstrap() {
-        boolean useEpoll = config.isUseEpoll() && isLinux();
+        boolean useEpoll = config.getPerformance().isUseEpoll() && isLinux();
         
         ServerBootstrap bootstrap = new ServerBootstrap()
             .group(bossGroup, workerGroup)
             .channel(useEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
             .childHandler(channelInitializer)
-            .option(ChannelOption.SO_BACKLOG, config.getSoBacklog())
+            .option(ChannelOption.SO_BACKLOG, config.getPerformance().getBacklog())
             .option(ChannelOption.SO_REUSEADDR, true)
-            .childOption(ChannelOption.SO_KEEPALIVE, config.isKeepAlive())
-            .childOption(ChannelOption.TCP_NODELAY, config.isTcpNoDelay())
-            .childOption(ChannelOption.SO_RCVBUF, config.getReceiveBufferSize())
-            .childOption(ChannelOption.SO_SNDBUF, config.getSendBufferSize())
-            .childOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectTimeout() * 1000);
+            .childOption(ChannelOption.SO_KEEPALIVE, config.getPerformance().isKeepAlive())
+            .childOption(ChannelOption.TCP_NODELAY, config.getPerformance().isTcpNoDelay())
+            .childOption(ChannelOption.SO_RCVBUF, config.getPerformance().getReceiveBufferSize())
+            .childOption(ChannelOption.SO_SNDBUF, config.getPerformance().getSendBufferSize())
+            .childOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnection().getTimeout() * 1000);
         
-        // 启用零拷贝
-        if (config.isZeroCopyEnabled()) {
-            bootstrap.childOption(ChannelOption.ALLOCATOR, io.netty.buffer.PooledByteBufAllocator.DEFAULT);
+        // 配置缓冲区分配器
+        if (config.getPerformance().isUsePooledBuffer()) {
+            if (config.getPerformance().isUseDirectBuffer()) {
+                bootstrap.childOption(ChannelOption.ALLOCATOR, io.netty.buffer.PooledByteBufAllocator.DEFAULT);
+            } else {
+                bootstrap.childOption(ChannelOption.ALLOCATOR, io.netty.buffer.UnpooledByteBufAllocator.DEFAULT);
+            }
         }
         
         return bootstrap;
@@ -221,15 +226,19 @@ public class NettyMqttServer {
      * @return 服务器状态信息
      */
     public ServerStats getServerStats() {
+        int ioThreads = config.getPerformance().getIoThreads() > 0 
+            ? config.getPerformance().getIoThreads() 
+            : Runtime.getRuntime().availableProcessors() * 2;
+            
         return ServerStats.builder()
             .running(isRunning())
-            .tcpPort(config.getPort())
-            .sslPort(config.getSslPort())
-            .sslEnabled(config.isSslEnabled())
-            .maxConnections(config.getMaxConnections())
-            .virtualThreadEnabled(config.isVirtualThreadEnabled())
-            .bossThreads(config.getBossThreads())
-            .workerThreads(config.getWorkerThreads())
+            .tcpPort(config.getServer().getPort())
+            .sslPort(config.getServer().getSslPort())
+            .sslEnabled(config.getServer().isSslEnabled())
+            .maxConnections(config.getConnection().getMaxConnections())
+            .virtualThreadEnabled(config.getPerformance().isVirtualThreadEnabled())
+            .bossThreads(1)
+            .workerThreads(ioThreads)
             .build();
     }
     

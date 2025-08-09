@@ -10,11 +10,13 @@ import com.vmqtt.frontend.config.NettyServerConfig;
 import com.vmqtt.frontend.server.handler.MqttConnectionHandler;
 import com.vmqtt.frontend.server.handler.MqttProtocolHandler;
 import com.vmqtt.frontend.server.handler.SslContextHandler;
-import com.vmqtt.common.protocol.codec.MqttDecoder;
-import com.vmqtt.common.protocol.codec.MqttEncoder;
+import com.vmqtt.common.protocol.codec.MqttCodecFactory;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import lombok.RequiredArgsConstructor;
@@ -37,37 +39,44 @@ public class MqttChannelInitializer extends ChannelInitializer<SocketChannel> {
     private final MqttConnectionHandler connectionHandler;
     private final MqttProtocolHandler protocolHandler;
     private final GlobalTrafficShapingHandler trafficHandler;
+    private final MqttCodecFactory codecFactory;
     
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
         ChannelPipeline pipeline = ch.pipeline();
         
         // 1. 流量整形处理器（可选）
-        if (config.isRateLimitEnabled()) {
+        if (config.getConnection().isRateLimitEnabled()) {
             pipeline.addLast("traffic", trafficHandler);
         }
         
         // 2. SSL/TLS处理器（如果启用）
-        if (config.isSslEnabled()) {
-            pipeline.addLast("ssl", sslHandler);
+        if (config.getServer().isSslEnabled()) {
+            pipeline.addLast("ssl", sslHandler.createSslHandler());
         }
         
         // 3. 空闲状态检测处理器
         pipeline.addLast("idle", new IdleStateHandler(
-            config.getIdleTimeout(), // 读空闲时间
-            config.getIdleTimeout(), // 写空闲时间  
-            config.getKeepAliveTimeout(), // 读写空闲时间
+            config.getConnection().getIdleTimeout(), // 读空闲时间
+            config.getConnection().getIdleTimeout(), // 写空闲时间  
+            config.getConnection().getIdleTimeout() * 2, // 读写空闲时间
             TimeUnit.SECONDS
         ));
         
-        // 4. MQTT协议编解码器
-        pipeline.addLast("decoder", new MqttDecoder(config.getMaxFrameLength()));
-        pipeline.addLast("encoder", new MqttEncoder());
+        // 4. 帧长度检测（防止恶意大包）
+        pipeline.addLast("frame-decoder", new LengthFieldBasedFrameDecoder(
+            config.getConnection().getMaxMessageSize(),
+            1, 4, -5, 0
+        ));
         
-        // 5. 连接管理处理器
+        // 5. MQTT协议编解码器
+        pipeline.addLast("mqtt-decoder", codecFactory.createDecoder());
+        pipeline.addLast("mqtt-encoder", codecFactory.createEncoder());
+        
+        // 6. 连接管理处理器
         pipeline.addLast("connection", connectionHandler);
         
-        // 6. MQTT协议处理器
+        // 7. MQTT协议处理器
         pipeline.addLast("mqtt", protocolHandler);
         
         log.debug("初始化MQTT通道Pipeline: {}", ch.remoteAddress());

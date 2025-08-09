@@ -35,17 +35,29 @@ public class VirtualThreadConfig {
      */
     @Bean("mqttVirtualExecutor")
     public ExecutorService mqttVirtualExecutor() {
-        if (!serverConfig.isVirtualThreadEnabled()) {
+        if (!serverConfig.getPerformance().isVirtualThreadEnabled()) {
             log.info("虚拟线程已禁用，使用传统线程池");
+            int workerThreads = serverConfig.getPerformance().getWorkerThreads() > 0 
+                ? serverConfig.getPerformance().getWorkerThreads() 
+                : Runtime.getRuntime().availableProcessors() * 2;
             return Executors.newFixedThreadPool(
-                serverConfig.getWorkerThreads() * 4,
+                workerThreads * 4,
                 createThreadFactory("mqtt-traditional")
             );
         }
         
-        log.info("启用虚拟线程池，支持{}个并发任务", serverConfig.getVirtualThreadPoolSize());
+        log.info("启用虚拟线程池，支持{}个并发任务", serverConfig.getPerformance().getVirtualThreadPoolSize());
         
-        return Executors.newVirtualThreadPerTaskExecutor();
+        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        try {
+            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
+            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
+                .getMethod("newVirtualThreadPerTaskExecutor")
+                .invoke(null);
+        } catch (Exception e) {
+            log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
+            return java.util.concurrent.ForkJoinPool.commonPool();
+        }
     }
     
     /**
@@ -56,14 +68,26 @@ public class VirtualThreadConfig {
      */
     @Bean("connectionVirtualExecutor")
     public ExecutorService connectionVirtualExecutor() {
-        if (!serverConfig.isVirtualThreadEnabled()) {
+        if (!serverConfig.getPerformance().isVirtualThreadEnabled()) {
+            int workerThreads = serverConfig.getPerformance().getWorkerThreads() > 0 
+                ? serverConfig.getPerformance().getWorkerThreads() 
+                : Runtime.getRuntime().availableProcessors() * 2;
             return Executors.newFixedThreadPool(
-                serverConfig.getWorkerThreads() * 2,
+                workerThreads * 2,
                 createThreadFactory("connection-traditional")
             );
         }
         
-        return Executors.newVirtualThreadPerTaskExecutor();
+        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        try {
+            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
+            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
+                .getMethod("newVirtualThreadPerTaskExecutor")
+                .invoke(null);
+        } catch (Exception e) {
+            log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
+            return java.util.concurrent.ForkJoinPool.commonPool();
+        }
     }
     
     /**
@@ -74,14 +98,26 @@ public class VirtualThreadConfig {
      */
     @Bean("messageVirtualExecutor")
     public ExecutorService messageVirtualExecutor() {
-        if (!serverConfig.isVirtualThreadEnabled()) {
+        if (!serverConfig.getPerformance().isVirtualThreadEnabled()) {
+            int workerThreads = serverConfig.getPerformance().getWorkerThreads() > 0 
+                ? serverConfig.getPerformance().getWorkerThreads() 
+                : Runtime.getRuntime().availableProcessors() * 2;
             return Executors.newFixedThreadPool(
-                serverConfig.getWorkerThreads() * 8,
+                workerThreads * 8,
                 createThreadFactory("message-traditional")
             );
         }
         
-        return Executors.newVirtualThreadPerTaskExecutor();
+        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        try {
+            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
+            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
+                .getMethod("newVirtualThreadPerTaskExecutor")
+                .invoke(null);
+        } catch (Exception e) {
+            log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
+            return java.util.concurrent.ForkJoinPool.commonPool();
+        }
     }
     
     /**
@@ -92,14 +128,26 @@ public class VirtualThreadConfig {
      */
     @Bean("authVirtualExecutor")
     public ExecutorService authVirtualExecutor() {
-        if (!serverConfig.isVirtualThreadEnabled()) {
+        if (!serverConfig.getPerformance().isVirtualThreadEnabled()) {
+            int workerThreads = serverConfig.getPerformance().getWorkerThreads() > 0 
+                ? serverConfig.getPerformance().getWorkerThreads() 
+                : Runtime.getRuntime().availableProcessors() * 2;
             return Executors.newFixedThreadPool(
-                serverConfig.getWorkerThreads(),
+                workerThreads,
                 createThreadFactory("auth-traditional")
             );
         }
         
-        return Executors.newVirtualThreadPerTaskExecutor();
+        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        try {
+            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
+            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
+                .getMethod("newVirtualThreadPerTaskExecutor")
+                .invoke(null);
+        } catch (Exception e) {
+            log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
+            return java.util.concurrent.ForkJoinPool.commonPool();
+        }
     }
     
     /**
@@ -110,14 +158,26 @@ public class VirtualThreadConfig {
      */
     @Bean("heartbeatVirtualExecutor")
     public ExecutorService heartbeatVirtualExecutor() {
-        if (!serverConfig.isVirtualThreadEnabled()) {
+        if (!serverConfig.getPerformance().isVirtualThreadEnabled()) {
+            int workerThreads = serverConfig.getPerformance().getWorkerThreads() > 0 
+                ? serverConfig.getPerformance().getWorkerThreads() 
+                : Runtime.getRuntime().availableProcessors() * 2;
             return Executors.newScheduledThreadPool(
-                Math.max(1, serverConfig.getWorkerThreads() / 4),
+                Math.max(1, workerThreads / 4),
                 createThreadFactory("heartbeat-traditional")
             );
         }
         
-        return Executors.newVirtualThreadPerTaskExecutor();
+        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        try {
+            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
+            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
+                .getMethod("newVirtualThreadPerTaskExecutor")
+                .invoke(null);
+        } catch (Exception e) {
+            log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
+            return java.util.concurrent.ForkJoinPool.commonPool();
+        }
     }
     
     /**
@@ -128,14 +188,26 @@ public class VirtualThreadConfig {
      */
     @Bean("taskExecutor")
     public Executor taskExecutor() {
-        if (!serverConfig.isVirtualThreadEnabled()) {
+        if (!serverConfig.getPerformance().isVirtualThreadEnabled()) {
+            int workerThreads = serverConfig.getPerformance().getWorkerThreads() > 0 
+                ? serverConfig.getPerformance().getWorkerThreads() 
+                : Runtime.getRuntime().availableProcessors() * 2;
             return Executors.newFixedThreadPool(
-                serverConfig.getWorkerThreads() * 2,
+                workerThreads * 2,
                 createThreadFactory("spring-async")
             );
         }
         
-        return Executors.newVirtualThreadPerTaskExecutor();
+        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        try {
+            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
+            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
+                .getMethod("newVirtualThreadPerTaskExecutor")
+                .invoke(null);
+        } catch (Exception e) {
+            log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
+            return java.util.concurrent.ForkJoinPool.commonPool();
+        }
     }
     
     /**

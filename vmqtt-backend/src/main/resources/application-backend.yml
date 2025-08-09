@@ -1,0 +1,82 @@
+# V-MQTT Backend Configuration
+server:
+  port: 8082
+
+spring:
+  application:
+    name: vmqtt-backend
+  
+  profiles:
+    active: backend
+
+# gRPC配置
+grpc:
+  server:
+    port: 9092
+    enable-reflection: true
+    
+# RocksDB配置
+rocksdb:
+  data-path: ./data/rocksdb
+  create-if-missing: true
+  write-buffer-size: 64MB
+  max-write-buffer-number: 3
+  target-file-size-base: 128MB
+  max-bytes-for-level-base: 1024MB
+  compression-type: LZ4
+  block-cache-size: 512MB
+  
+# 调度任务配置
+scheduling:
+  thread-pool-size: 10
+  cleanup:
+    expired-messages:
+      enabled: true
+      fixed-delay: 300000  # 5分钟
+      batch-size: 500
+    expired-sessions:
+      enabled: true
+      fixed-delay: 600000  # 10分钟
+      batch-size: 100
+    qos-retry:
+      enabled: true
+      fixed-delay: 30000   # 30秒
+      batch-size: 100
+
+# 缓存配置
+cache:
+  retain-message:
+    maximum-size: 10000
+    expire-after-write: 30m
+  subscription:
+    maximum-size: 50000
+    expire-after-write: 10m
+
+# 日志配置
+logging:
+  level:
+    com.vmqtt.backend: DEBUG
+    com.vmqtt.common: INFO
+    org.rocksdb: WARN
+    io.grpc: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/vmqtt-backend.log
+    max-size: 100MB
+    max-history: 30
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

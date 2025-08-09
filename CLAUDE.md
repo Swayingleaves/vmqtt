@@ -35,6 +35,8 @@ mvn clean package
 mvn clean package -DskipTests
 ```
 
+注意：如果mvn打包失败，可以使用`jenv local 21` 切换到java21环境，再执行mvn命令。
+
 ### 运行应用
 ```bash
 # 运行 vmqtt-core 应用
@@ -99,3 +101,6 @@ mvn -pl vmqtt-common protobuf:compile protobuf:compile-custom
 - gRPC 和 Protocol Buffers 支持 
 - Spring Boot 基础配置
 - 基本的测试框架
+
+# TASK
+请基于CLAUDE.md和TASK.md，完成预定的任务，如果完成了任务请更新TASK里的状态
