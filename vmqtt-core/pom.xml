@@ -21,18 +21,9 @@
         </dependency>
         <dependency>
             <groupId>com.vmqtt</groupId>
-            <artifactId>vmqtt-frontend</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.vmqtt</groupId>
-            <artifactId>vmqtt-backend</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.vmqtt</groupId>
             <artifactId>vmqtt-cluster</artifactId>
             <version>${project.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- Spring Boot -->
