@@ -109,16 +109,16 @@
 - [x] 集群间通信（接口对接与占位实现，支持后续扩展）
 
 #### 📋 2.4 消息质量保证 (QoS)
-- [ ] QoS 0 (At most once) 实现
-- [ ] QoS 1 (At least once) 实现
-- [ ] QoS 2 (Exactly once) 实现
-- [ ] 消息确认和重传机制
-- [ ] 消息去重处理
+- [x] QoS 0 (At most once) 实现
+- [x] QoS 1 (At least once) 实现（含重传与ACK去重）
+- [x] QoS 2 (Exactly once) 实现（流程骨架，含PUBREC/PUBCOMP去重）
+- [x] 消息确认和重传机制
+- [x] 消息去重处理
 
 ### 🌐 第三阶段：集群和扩展功能 (3-4周)
 
-#### 📋 3.1 vmqtt-cluster 模块
-- [ ] 服务发现机制(Consul/Zookeeper)
+#### 📋 3.1 vmqtt-集群与服务发现
+- [x] 服务发现机制（无外部中间件：内存注册表 + 心跳TTL）
 - [ ] 集群节点管理
 - [ ] 健康检查和故障转移
 - [ ] 集群状态同步

@@ -14,6 +14,8 @@ import com.vmqtt.common.service.impl.AuthenticationServiceImpl;
 import com.vmqtt.common.service.impl.ConnectionManagerImpl;
 import com.vmqtt.common.service.impl.MessageRouterImpl;
 import com.vmqtt.common.service.impl.SessionManagerImpl;
+import com.vmqtt.vmqttcore.cluster.InMemoryServiceRegistry;
+import com.vmqtt.vmqttcore.cluster.ServiceRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -78,6 +80,16 @@ public class ServiceConfiguration {
         messageRouter.addRouteListener(new RouteEventLogger());
         
         return messageRouter;
+    }
+
+    /**
+     * 轻量服务注册发现Bean（无外部中间件）
+     */
+    @Bean
+    @Primary
+    public ServiceRegistry serviceRegistry() {
+        log.info("创建内存服务注册表Bean");
+        return new InMemoryServiceRegistry();
     }
 
     /**
