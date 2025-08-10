@@ -6,10 +6,12 @@
  */
 package com.vmqtt.frontend.server;
 
+import com.vmqtt.frontend.config.NettyOptimizationConfig;
 import com.vmqtt.frontend.config.NettyServerConfig;
 import com.vmqtt.frontend.server.initializer.MqttChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
+import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -17,7 +19,10 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -30,11 +35,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class NettyMqttServer {
     
     private final NettyServerConfig config;
+    private final NettyOptimizationConfig optimizationConfig;
     private final MqttChannelInitializer channelInitializer;
+    private final Map<ChannelOption<?>, Object> serverChannelOptions;
+    private final Map<ChannelOption<?>, Object> childChannelOptions;
+    
+    public NettyMqttServer(NettyServerConfig config,
+                           NettyOptimizationConfig optimizationConfig,
+                           MqttChannelInitializer channelInitializer,
+                           @Qualifier("optimizedServerChannelOptions") Map<ChannelOption<?>, Object> serverChannelOptions,
+                           @Qualifier("optimizedChildChannelOptions") Map<ChannelOption<?>, Object> childChannelOptions) {
+        this.config = config;
+        this.optimizationConfig = optimizationConfig;
+        this.channelInitializer = channelInitializer;
+        this.serverChannelOptions = serverChannelOptions;
+        this.childChannelOptions = childChannelOptions;
+    }
     
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -175,31 +194,31 @@ public class NettyMqttServer {
     }
     
     /**
-     * 创建服务器引导配置
+     * 创建优化的服务器引导配置
      */
     private ServerBootstrap createServerBootstrap() {
-        boolean useEpoll = config.getPerformance().isUseEpoll() && isLinux();
-        
         ServerBootstrap bootstrap = new ServerBootstrap()
             .group(bossGroup, workerGroup)
-            .channel(useEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
-            .childHandler(channelInitializer)
-            .option(ChannelOption.SO_BACKLOG, config.getPerformance().getBacklog())
-            .option(ChannelOption.SO_REUSEADDR, true)
-            .childOption(ChannelOption.SO_KEEPALIVE, config.getPerformance().isKeepAlive())
-            .childOption(ChannelOption.TCP_NODELAY, config.getPerformance().isTcpNoDelay())
-            .childOption(ChannelOption.SO_RCVBUF, config.getPerformance().getReceiveBufferSize())
-            .childOption(ChannelOption.SO_SNDBUF, config.getPerformance().getSendBufferSize())
-            .childOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnection().getTimeout() * 1000);
+            .channel((Class<? extends ServerChannel>) optimizationConfig.getOptimizedServerChannelClass())
+            .childHandler(channelInitializer);
         
-        // 配置缓冲区分配器
-        if (config.getPerformance().isUsePooledBuffer()) {
-            if (config.getPerformance().isUseDirectBuffer()) {
-                bootstrap.childOption(ChannelOption.ALLOCATOR, io.netty.buffer.PooledByteBufAllocator.DEFAULT);
-            } else {
-                bootstrap.childOption(ChannelOption.ALLOCATOR, io.netty.buffer.UnpooledByteBufAllocator.DEFAULT);
-            }
+        // 应用优化的服务端选项
+        for (Map.Entry<ChannelOption<?>, Object> entry : serverChannelOptions.entrySet()) {
+            @SuppressWarnings("unchecked")
+            ChannelOption<Object> option = (ChannelOption<Object>) entry.getKey();
+            bootstrap.option(option, entry.getValue());
         }
+        
+        // 应用优化的子Channel选项
+        for (Map.Entry<ChannelOption<?>, Object> entry : childChannelOptions.entrySet()) {
+            @SuppressWarnings("unchecked")
+            ChannelOption<Object> option = (ChannelOption<Object>) entry.getKey();
+            bootstrap.childOption(option, entry.getValue());
+        }
+        
+        log.info("服务器引导配置完成，使用零拷贝优化");
+        log.info("Channel类型: {}", optimizationConfig.getOptimizedServerChannelClass().getSimpleName());
+        log.info("Epoll支持: {}", Epoll.isAvailable() ? "可用" : "不可用");
         
         return bootstrap;
     }

@@ -18,6 +18,84 @@ storage:
     max-open-files: 10000
     block-cache-size: 256MB
     write-buffer-size: 64MB
+    
+# RocksDB性能优化配置
+vmqtt:
+  storage:
+    rocksdb:
+      # 基础配置
+      data-dir: ./data/rocksdb
+      wal-dir: ./data/wal
+      backup-dir: ./data/backup
+      
+      # 性能模式: BALANCED, THROUGHPUT, LATENCY
+      performance-mode: BALANCED
+      
+      # 内存配置
+      memory-budget-bytes: 1073741824  # 1GB
+      write-buffer-size: 134217728     # 128MB
+      max-write-buffer-number: 6
+      min-write-buffer-number-to-merge: 2
+      block-cache-size: 268435456      # 256MB
+      
+      # 压缩配置
+      compression-enabled: true
+      compression-type: SNAPPY
+      max-background-compactions: 8
+      max-background-flushes: 2
+      
+      # Level配置
+      level0-file-num-compaction-trigger: 4
+      level0-slowdown-writes-trigger: 20
+      level0-stop-writes-trigger: 36
+      target-file-size-base: 67108864  # 64MB
+      max-bytes-for-level-base: 268435456  # 256MB
+      max-bytes-for-level-multiplier: 10.0
+      
+      # WAL配置
+      wal-size-limit-mb: 64
+      wal-ttl-seconds: 3600
+      disable-wal: false
+      sync-writes: false
+      
+      # 高级优化
+      enable-pipelined-write: true
+      enable-write-thread-adaptive-yield: true
+      atomic-flush: true
+      pre-allocate-write-buffers: true
+      
+      # 布隆过滤器
+      enable-bloom-filter: true
+      bloom-filter-bits-per-key: 10.0
+      
+      # 列族特定配置
+      session-cf:
+        write-buffer-size: 67108864    # 64MB
+        compression-type: LZ4
+        ttl-seconds: 86400             # 1天
+        enable-bloom-filter: true
+      
+      message-cf:
+        write-buffer-size: 134217728   # 128MB
+        compression-type: ZSTD
+        ttl-seconds: 2592000           # 30天
+        enable-bloom-filter: true
+      
+      subscription-cf:
+        write-buffer-size: 33554432    # 32MB
+        compression-type: SNAPPY
+        enable-bloom-filter: true
+      
+      retained-cf:
+        write-buffer-size: 67108864    # 64MB
+        compression-type: ZSTD
+        enable-bloom-filter: true
+      
+      qos-cf:
+        write-buffer-size: 33554432    # 32MB
+        compression-type: SNAPPY
+        ttl-seconds: 604800            # 7天
+        enable-bloom-filter: true
 
 # 消息配置
 message:

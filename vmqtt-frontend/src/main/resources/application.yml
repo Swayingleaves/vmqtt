@@ -28,6 +28,16 @@ performance:
   io-threads: 0  # 0表示使用CPU核心数*2
   worker-threads: 0  # 0表示使用虚拟线程
   buffer-size: 65536
+  # 虚拟线程优化配置
+  virtual-thread:
+    enabled: true
+    carrier-threads: 0  # 0表示使用CPU核心数
+    max-concurrent-tasks: 1000000
+    enable-flow-control: true
+    enable-batch-processing: true
+    # 线程亲和性配置
+    cpu-affinity: false
+    numa-aware: false
 
 # 监控配置  
 management:

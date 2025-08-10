@@ -29,25 +29,29 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class VirtualThreadManager {
     
-    @Qualifier("mqttVirtualExecutor")
     private final ExecutorService mqttExecutor;
-    
-    @Qualifier("connectionVirtualExecutor")
     private final ExecutorService connectionExecutor;
-    
-    @Qualifier("messageVirtualExecutor")
     private final ExecutorService messageExecutor;
-    
-    @Qualifier("authVirtualExecutor")
     private final ExecutorService authExecutor;
-    
-    @Qualifier("heartbeatVirtualExecutor")
     private final ExecutorService heartbeatExecutor;
-    
     private final MeterRegistry meterRegistry;
+    
+    public VirtualThreadManager(
+        @Qualifier("mqttVirtualExecutor") ExecutorService mqttExecutor,
+        @Qualifier("connectionVirtualExecutor") ExecutorService connectionExecutor,
+        @Qualifier("messageVirtualExecutor") ExecutorService messageExecutor,
+        @Qualifier("authVirtualExecutor") ExecutorService authExecutor,
+        @Qualifier("heartbeatVirtualExecutor") ExecutorService heartbeatExecutor,
+        MeterRegistry meterRegistry) {
+        this.mqttExecutor = mqttExecutor;
+        this.connectionExecutor = connectionExecutor;
+        this.messageExecutor = messageExecutor;
+        this.authExecutor = authExecutor;
+        this.heartbeatExecutor = heartbeatExecutor;
+        this.meterRegistry = meterRegistry;
+    }
     
     // 线程统计计数器
     private final AtomicLong mqttTaskCount = new AtomicLong(0);

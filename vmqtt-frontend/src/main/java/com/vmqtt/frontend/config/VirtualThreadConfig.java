@@ -6,8 +6,9 @@
  */
 package com.vmqtt.frontend.config;
 
+import com.vmqtt.frontend.server.VirtualThreadManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,8 +25,11 @@ import java.util.concurrent.ThreadFactory;
 @Configuration
 public class VirtualThreadConfig {
     
-    @Autowired
-    private NettyServerConfig serverConfig;
+    private final NettyServerConfig serverConfig;
+    
+    public VirtualThreadConfig(NettyServerConfig serverConfig) {
+        this.serverConfig = serverConfig;
+    }
     
     /**
      * 创建主要的虚拟线程执行器
@@ -48,14 +52,19 @@ public class VirtualThreadConfig {
         
         log.info("启用虚拟线程池，支持{}个并发任务", serverConfig.getPerformance().getVirtualThreadPoolSize());
         
-        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        // Java 21+中直接使用虚拟线程API，添加性能优化配置
         try {
-            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
-            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
-                .getMethod("newVirtualThreadPerTaskExecutor")
-                .invoke(null);
+            // 创建带有自定义配置的虚拟线程执行器
+            ThreadFactory virtualThreadFactory = Thread.ofVirtual()
+                .name("mqtt-virtual-", 0)
+                .uncaughtExceptionHandler((thread, exception) -> {
+                    log.error("虚拟线程异常: thread={}, error={}", thread.getName(), exception.getMessage(), exception);
+                })
+                .factory();
+            
+            return Executors.newThreadPerTaskExecutor(virtualThreadFactory);
         } catch (Exception e) {
-            log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
+            log.warn("虚拟线程不可用，降级使用高性能ForkJoinPool: {}", e.getMessage());
             return java.util.concurrent.ForkJoinPool.commonPool();
         }
     }
@@ -198,16 +207,37 @@ public class VirtualThreadConfig {
             );
         }
         
-        // Java 17-19中虚拟线程是预览功能，Java 21+中已正式可用
+        // Java 21+中直接使用虚拟线程API
         try {
-            // 尝试使用反射调用虚拟线程API（适配不同JDK版本）
-            return (ExecutorService) Class.forName("java.util.concurrent.Executors")
-                .getMethod("newVirtualThreadPerTaskExecutor")
-                .invoke(null);
+            ThreadFactory springAsyncVirtualFactory = Thread.ofVirtual()
+                .name("spring-async-virtual-", 0)
+                .uncaughtExceptionHandler((thread, exception) -> {
+                    log.error("Spring异步虚拟线程异常: thread={}, error={}", thread.getName(), exception.getMessage(), exception);
+                })
+                .factory();
+            
+            return Executors.newThreadPerTaskExecutor(springAsyncVirtualFactory);
         } catch (Exception e) {
             log.warn("虚拟线程不可用，降级使用ForkJoinPool: {}", e.getMessage());
             return java.util.concurrent.ForkJoinPool.commonPool();
         }
+    }
+    
+    /**
+     * 创建虚拟线程监控和管理服务
+     *
+     * @return 虚拟线程管理器
+     */
+    @Bean
+    public VirtualThreadManager virtualThreadManager(
+            @Qualifier("mqttVirtualExecutor") ExecutorService mqttExecutor,
+            @Qualifier("connectionVirtualExecutor") ExecutorService connectionExecutor,
+            @Qualifier("messageVirtualExecutor") ExecutorService messageExecutor,
+            @Qualifier("authVirtualExecutor") ExecutorService authExecutor,
+            @Qualifier("heartbeatVirtualExecutor") ExecutorService heartbeatExecutor,
+            io.micrometer.core.instrument.MeterRegistry meterRegistry) {
+        return new VirtualThreadManager(mqttExecutor, connectionExecutor, messageExecutor, 
+                                        authExecutor, heartbeatExecutor, meterRegistry);
     }
     
     /**
