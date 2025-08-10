@@ -118,7 +118,8 @@ public class ServiceConfiguration {
     @PostConstruct
     public void init() {
         log.info("V-MQTT核心服务配置初始化完成");
-        log.info("已注册的服务：ConnectionManager, SessionManager, MessageRouter, AuthenticationService");
+        log.info("已注册的服务：ConnectionManager, SessionManager, MessageRouter, AuthenticationService, ServiceRegistry");
+        log.info("集群管理组件：ClusterNodeManager, HealthCheckManager, ClusterStateSyncManager, DynamicLoadBalancerManager");
     }
 
     /**

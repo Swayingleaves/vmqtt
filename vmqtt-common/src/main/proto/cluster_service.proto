@@ -62,6 +62,39 @@ service LoadBalancingService {
   rpc AdjustNodeWeight(AdjustNodeWeightRequest) returns (AdjustNodeWeightResponse);
 }
 
+// 集群订阅管理服务
+service ClusterSubscriptionService {
+  // 同步订阅信息
+  rpc SyncSubscription(SyncSubscriptionRequest) returns (SyncSubscriptionResponse);
+  
+  // 广播订阅变更
+  rpc BroadcastSubscriptionChange(BroadcastSubscriptionChangeRequest) returns (BroadcastSubscriptionChangeResponse);
+  
+  // 查询订阅信息
+  rpc QuerySubscriptions(QuerySubscriptionsRequest) returns (QuerySubscriptionsResponse);
+  
+  // Gossip订阅信息传播
+  rpc GossipSubscriptionInfo(GossipSubscriptionInfoRequest) returns (GossipSubscriptionInfoResponse);
+  
+  // 订阅冲突解决
+  rpc ResolveSubscriptionConflict(ResolveSubscriptionConflictRequest) returns (ResolveSubscriptionConflictResponse);
+}
+
+// 集群消息路由服务
+service ClusterMessageRoutingService {
+  // 路由消息到目标节点
+  rpc RouteMessage(RouteMessageRequest) returns (RouteMessageResponse);
+  
+  // 批量路由消息
+  rpc BatchRouteMessage(BatchRouteMessageRequest) returns (BatchRouteMessageResponse);
+  
+  // 查询订阅者分布
+  rpc QuerySubscriberDistribution(QuerySubscriberDistributionRequest) returns (QuerySubscriberDistributionResponse);
+  
+  // 跨节点消息分发
+  rpc DistributeMessage(DistributeMessageRequest) returns (DistributeMessageResponse);
+}
+
 // 选举相关消息
 message ElectLeaderRequest {
   string candidate_id = 1;
@@ -355,4 +388,214 @@ enum LoadBalanceStrategy {
   CONSISTENT_HASH = 3;
   RANDOM = 4;
   LEAST_RESPONSE_TIME = 5;
+}
+
+// 集群订阅管理相关消息
+message SyncSubscriptionRequest {
+  string node_id = 1;
+  repeated ClusterSubscriptionInfo subscriptions = 2;
+  int64 version = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message SyncSubscriptionResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated ClusterSubscriptionInfo updated_subscriptions = 3;
+  int64 current_version = 4;
+}
+
+message BroadcastSubscriptionChangeRequest {
+  string node_id = 1;
+  SubscriptionChangeEvent event = 2;
+  int64 sequence_number = 3;
+}
+
+message BroadcastSubscriptionChangeResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message QuerySubscriptionsRequest {
+  string topic_filter = 1;
+  string node_id = 2;
+  bool include_shared_subscriptions = 3;
+}
+
+message QuerySubscriptionsResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated ClusterSubscriptionInfo subscriptions = 3;
+}
+
+message GossipSubscriptionInfoRequest {
+  string node_id = 1;
+  repeated GossipSubscriptionEntry gossip_data = 2;
+  int32 gossip_round = 3;
+}
+
+message GossipSubscriptionInfoResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated GossipSubscriptionEntry response_data = 3;
+}
+
+message ResolveSubscriptionConflictRequest {
+  string node_id = 1;
+  repeated ConflictingSubscription conflicts = 2;
+}
+
+message ResolveSubscriptionConflictResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated ClusterSubscriptionInfo resolved_subscriptions = 3;
+}
+
+// 集群消息路由相关消息
+message RouteMessageRequest {
+  string source_node_id = 1;
+  string target_node_id = 2;
+  ClusterMessage message = 3;
+  RoutingMetadata routing_metadata = 4;
+}
+
+message RouteMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  RoutingResult routing_result = 3;
+}
+
+message BatchRouteMessageRequest {
+  string source_node_id = 1;
+  repeated RouteMessageRequest messages = 2;
+}
+
+message BatchRouteMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated RouteMessageResponse results = 3;
+}
+
+message QuerySubscriberDistributionRequest {
+  string topic = 1;
+  bool include_shared_subscriptions = 2;
+}
+
+message QuerySubscriberDistributionResponse {
+  bool success = 1;
+  string error_message = 2;
+  repeated NodeSubscriberInfo node_subscribers = 3;
+}
+
+message DistributeMessageRequest {
+  string source_node_id = 1;
+  ClusterMessage message = 2;
+  repeated string target_nodes = 3;
+  DistributionStrategy strategy = 4;
+}
+
+message DistributeMessageResponse {
+  bool success = 1;
+  string error_message = 2;
+  map<string, bool> node_results = 3;
+}
+
+// 数据模型定义
+message ClusterSubscriptionInfo {
+  string subscription_id = 1;
+  string client_id = 2;
+  string node_id = 3;
+  string topic_filter = 4;
+  int32 qos = 5;
+  bool shared_subscription = 6;
+  string share_group = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  int64 version = 10;
+  SubscriptionStatus status = 11;
+}
+
+message SubscriptionChangeEvent {
+  string subscription_id = 1;
+  string client_id = 2;
+  string node_id = 3;
+  string topic_filter = 4;
+  ChangeEventType event_type = 5;
+  google.protobuf.Timestamp timestamp = 6;
+  int64 sequence_number = 7;
+}
+
+message GossipSubscriptionEntry {
+  string node_id = 1;
+  string subscription_data = 2;
+  int64 version = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message ConflictingSubscription {
+  string subscription_id = 1;
+  repeated ClusterSubscriptionInfo conflicting_versions = 2;
+  ConflictType conflict_type = 3;
+}
+
+message ClusterMessage {
+  string message_id = 1;
+  string client_id = 2;
+  string topic = 3;
+  bytes payload = 4;
+  int32 qos = 5;
+  bool retain = 6;
+  google.protobuf.Timestamp timestamp = 7;
+  map<string, string> properties = 8;
+}
+
+message RoutingMetadata {
+  string message_id = 1;
+  string source_node = 2;
+  repeated string target_nodes = 3;
+  int32 hop_count = 4;
+  google.protobuf.Timestamp routing_timestamp = 5;
+  map<string, string> routing_properties = 6;
+}
+
+message RoutingResult {
+  string message_id = 1;
+  bool delivered = 2;
+  int32 subscriber_count = 3;
+  double routing_latency_ms = 4;
+}
+
+message NodeSubscriberInfo {
+  string node_id = 1;
+  int32 subscriber_count = 2;
+  repeated string client_ids = 3;
+  double node_load = 4;
+}
+
+// 枚举定义
+enum SubscriptionStatus {
+  SUBSCRIPTION_UNKNOWN = 0;
+  SUBSCRIPTION_ACTIVE = 1;
+  SUBSCRIPTION_INACTIVE = 2;
+  SUBSCRIPTION_EXPIRED = 3;
+}
+
+enum ChangeEventType {
+  EVENT_UNKNOWN = 0;
+  SUBSCRIPTION_ADDED = 1;
+  SUBSCRIPTION_REMOVED = 2;
+  SUBSCRIPTION_UPDATED = 3;
+}
+
+enum ConflictType {
+  CONFLICT_UNKNOWN = 0;
+  VERSION_CONFLICT = 1;
+  DUPLICATE_SUBSCRIPTION = 2;
+  NODE_CONFLICT = 3;
+}
+
+enum DistributionStrategy {
+  DISTRIBUTION_BROADCAST = 0;
+  DISTRIBUTION_SELECTIVE = 1;
+  DISTRIBUTION_LOAD_BALANCED = 2;
 }
