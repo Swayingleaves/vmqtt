@@ -39,7 +39,6 @@
         <module>vmqtt-core</module>
         <module>vmqtt-frontend</module>
         <module>vmqtt-backend</module>
-        <module>vmqtt-cluster</module>
     </modules>
 
     <dependencyManagement>

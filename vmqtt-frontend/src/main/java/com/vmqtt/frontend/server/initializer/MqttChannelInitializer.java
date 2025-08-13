@@ -11,16 +11,18 @@ import com.vmqtt.frontend.server.handler.MqttConnectionHandler;
 import com.vmqtt.frontend.server.handler.MqttProtocolHandler;
 import com.vmqtt.frontend.server.handler.SslContextHandler;
 import com.vmqtt.common.protocol.codec.MqttCodecFactory;
+import com.vmqtt.common.protocol.codec.MqttChannelHandlerAdapter;
+import com.vmqtt.common.protocol.codec.MqttProtocolVersionManager;
+import com.vmqtt.common.protocol.MqttVersion;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -32,14 +34,13 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class MqttChannelInitializer extends ChannelInitializer<SocketChannel> {
+public class MqttChannelInitializer extends ChannelInitializer<SocketChannel> implements InitializingBean {
     
     private final NettyServerConfig config;
     private final SslContextHandler sslHandler;
     private final MqttConnectionHandler connectionHandler;
     private final MqttProtocolHandler protocolHandler;
     private final GlobalTrafficShapingHandler trafficHandler;
-    private final MqttCodecFactory codecFactory;
     
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
@@ -63,15 +64,10 @@ public class MqttChannelInitializer extends ChannelInitializer<SocketChannel> {
             TimeUnit.SECONDS
         ));
         
-        // 4. 帧长度检测（防止恶意大包）
-        pipeline.addLast("frame-decoder", new LengthFieldBasedFrameDecoder(
-            config.getConnection().getMaxMessageSize(),
-            1, 4, -5, 0
-        ));
+        // 4. MQTT协议有自己的帧格式，不需要额外的帧长度检测
         
-        // 5. MQTT协议编解码器
-        pipeline.addLast("mqtt-decoder", codecFactory.createDecoder());
-        pipeline.addLast("mqtt-encoder", codecFactory.createEncoder());
+        // 5. MQTT协议编解码器适配器 - 支持动态版本协商
+        pipeline.addLast("mqtt-codec", new MqttChannelHandlerAdapter());
         
         // 6. 连接管理处理器
         pipeline.addLast("connection", connectionHandler);
@@ -83,11 +79,33 @@ public class MqttChannelInitializer extends ChannelInitializer<SocketChannel> {
     }
     
     /**
+     * Spring Bean初始化后回调
+     */
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        log.info("开始初始化MQTT通道初始化器");
+        
+        // 预热MQTT编解码器缓存
+        MqttProtocolVersionManager.warmupCodecCache();
+        
+        log.info("MQTT通道初始化器初始化完成");
+    }
+    
+    /**
      * 处理初始化异常
      */
     @Override
     public void exceptionCaught(io.netty.channel.ChannelHandlerContext ctx, Throwable cause) {
         log.error("MQTT通道初始化失败: {}", ctx.channel().remoteAddress(), cause);
         ctx.close();
+    }
+    
+    /**
+     * 获取编解码器统计信息
+     *
+     * @return 统计信息
+     */
+    public String getCodecStats() {
+        return MqttProtocolVersionManager.getCodecStats();
     }
 }
