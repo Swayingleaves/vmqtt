@@ -14,8 +14,9 @@ import com.vmqtt.common.service.impl.AuthenticationServiceImpl;
 import com.vmqtt.common.service.impl.ConnectionManagerImpl;
 import com.vmqtt.common.service.impl.MessageRouterImpl;
 import com.vmqtt.common.service.impl.SessionManagerImpl;
-import com.vmqtt.vmqttcore.cluster.InMemoryServiceRegistry;
-import com.vmqtt.vmqttcore.cluster.ServiceRegistry;
+import com.vmqtt.common.util.MemoryPoolManager;
+import com.vmqtt.common.config.AuthenticationConfig;
+import com.vmqtt.common.service.AuthenticationConfigManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -82,15 +83,6 @@ public class ServiceConfiguration {
         return messageRouter;
     }
 
-    /**
-     * 轻量服务注册发现Bean（无外部中间件）
-     */
-    @Bean
-    @Primary
-    public ServiceRegistry serviceRegistry() {
-        log.info("创建内存服务注册表Bean");
-        return new InMemoryServiceRegistry();
-    }
 
     /**
      * 认证服务Bean
@@ -110,6 +102,32 @@ public class ServiceConfiguration {
         authService.addAuthenticationListener(new AuthenticationEventLogger());
         
         return authService;
+    }
+
+    /**
+     * 认证配置管理器Bean
+     * 
+     * @param authProperties 认证配置属性
+     * @param authService 认证服务
+     * @return AuthenticationConfigManager实例
+     */
+    @Bean
+    @Primary
+    public AuthenticationConfigManager authenticationConfigManager(
+            AuthenticationProperties authProperties, 
+            AuthenticationService authService) {
+        log.info("创建认证配置管理器Bean");
+        return new AuthenticationConfigManager(authProperties, authService);
+    }
+
+    /**
+     * 内存池管理器Bean
+     */
+    @Bean
+    @Primary
+    public MemoryPoolManager memoryPoolManager() {
+        log.info("创建内存池管理器Bean");
+        return new MemoryPoolManager();
     }
 
     /**

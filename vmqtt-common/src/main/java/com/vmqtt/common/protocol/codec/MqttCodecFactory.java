@@ -9,6 +9,8 @@ package com.vmqtt.common.protocol.codec;
 import com.vmqtt.common.protocol.MqttVersion;
 import com.vmqtt.common.protocol.codec.v3.MqttV3Decoder;
 import com.vmqtt.common.protocol.codec.v3.MqttV3Encoder;
+import com.vmqtt.common.protocol.codec.v5.MqttV5Decoder;
+import com.vmqtt.common.protocol.codec.v5.MqttV5Encoder;
 
 /**
  * MQTT编解码器工厂
@@ -26,7 +28,7 @@ public class MqttCodecFactory {
     public static MqttDecoder createDecoder(MqttVersion version) {
         return switch (version) {
             case MQTT_3_1, MQTT_3_1_1 -> new MqttV3DecoderWrapper(new MqttV3Decoder(version));
-            case MQTT_5_0 -> throw new UnsupportedOperationException("MQTT 5.0 decoder not fully implemented yet");
+            case MQTT_5_0 -> new MqttV5DecoderWrapper(new MqttV5Decoder(version));
         };
     }
     
@@ -39,7 +41,7 @@ public class MqttCodecFactory {
     public static MqttEncoder createEncoder(MqttVersion version) {
         return switch (version) {
             case MQTT_3_1, MQTT_3_1_1 -> new MqttV3EncoderWrapper(new MqttV3Encoder(version));
-            case MQTT_5_0 -> throw new UnsupportedOperationException("MQTT 5.0 encoder not fully implemented yet");
+            case MQTT_5_0 -> new MqttV5EncoderWrapper(new MqttV5Encoder(version));
         };
     }
     
@@ -61,8 +63,7 @@ public class MqttCodecFactory {
      */
     public static boolean isVersionSupported(MqttVersion version) {
         return switch (version) {
-            case MQTT_3_1, MQTT_3_1_1 -> true;
-            case MQTT_5_0 -> false; // 暂时不支持
+            case MQTT_3_1, MQTT_3_1_1, MQTT_5_0 -> true;
         };
     }
     
@@ -74,7 +75,8 @@ public class MqttCodecFactory {
     public static MqttVersion[] getSupportedVersions() {
         return new MqttVersion[] {
             MqttVersion.MQTT_3_1,
-            MqttVersion.MQTT_3_1_1
+            MqttVersion.MQTT_3_1_1,
+            MqttVersion.MQTT_5_0
         };
     }
     
@@ -126,6 +128,48 @@ public class MqttCodecFactory {
         private final MqttV3Encoder encoder;
         
         private MqttV3EncoderWrapper(MqttV3Encoder encoder) {
+            this.encoder = encoder;
+        }
+        
+        @Override
+        public void encode(com.vmqtt.common.protocol.packet.MqttPacket packet, io.netty.buffer.ByteBuf buffer) {
+            encoder.encode(packet, buffer);
+        }
+        
+        @Override
+        public MqttVersion getVersion() {
+            return encoder.getProtocolVersion();
+        }
+    }
+    
+    /**
+     * MQTT 5.x解码器包装器
+     */
+    private static class MqttV5DecoderWrapper implements MqttDecoder {
+        private final MqttV5Decoder decoder;
+        
+        private MqttV5DecoderWrapper(MqttV5Decoder decoder) {
+            this.decoder = decoder;
+        }
+        
+        @Override
+        public com.vmqtt.common.protocol.packet.MqttPacket decode(io.netty.buffer.ByteBuf buffer) {
+            return decoder.decode(buffer);
+        }
+        
+        @Override
+        public MqttVersion getVersion() {
+            return decoder.getProtocolVersion();
+        }
+    }
+    
+    /**
+     * MQTT 5.x编码器包装器
+     */
+    private static class MqttV5EncoderWrapper implements MqttEncoder {
+        private final MqttV5Encoder encoder;
+        
+        private MqttV5EncoderWrapper(MqttV5Encoder encoder) {
             this.encoder = encoder;
         }
         

@@ -351,11 +351,11 @@ public class QoSMessageManager {
     /**
      * 重试超时的QoS消息
      *
-     * @param batchSize 批处理大小
      * @return 重试的消息数量
      */
     @Scheduled(fixedDelay = 30000) // 每30秒执行一次
-    public int retryTimeoutQoSMessages(int batchSize) {
+    public int retryTimeoutQoSMessages() {
+        int batchSize = 100; // 默认批处理大小
         try {
             List<QoSState> timeoutStates = getTimeoutQoSStates(batchSize);
             
@@ -386,10 +386,78 @@ public class QoSMessageManager {
     /**
      * 清理过期的QoS状态
      *
-     * @param batchSize 批处理大小
      * @return 清理的数量
      */
     @Scheduled(fixedDelay = 300000) // 每5分钟执行一次
+    public int cleanupExpiredQoSStates() {
+        int batchSize = 100; // 默认批处理大小
+        try {
+            List<QoSState> expiredStates = getExpiredQoSStates(batchSize);
+            
+            int cleanedCount = 0;
+            for (QoSState qosState : expiredStates) {
+                try {
+                    String qosKey = StorageKeyspace.qosStateKey(qosState.getClientId(), qosState.getPacketId());
+                    cleanupQoSState(qosKey, qosState);
+                    cleanedCount++;
+                } catch (Exception e) {
+                    log.error("Failed to cleanup expired QoS state: clientId={}, packetId={}", 
+                             qosState.getClientId(), qosState.getPacketId(), e);
+                }
+            }
+            
+            if (cleanedCount > 0) {
+                log.info("Cleaned up {} expired QoS states", cleanedCount);
+            }
+            
+            return cleanedCount;
+            
+        } catch (Exception e) {
+            log.error("Failed to cleanup expired QoS states", e);
+            return 0;
+        }
+    }
+    
+    /**
+     * 重试超时的QoS消息（带参数版本）
+     *
+     * @param batchSize 批处理大小
+     * @return 重试的消息数量
+     */
+    public int retryTimeoutQoSMessages(int batchSize) {
+        try {
+            List<QoSState> timeoutStates = getTimeoutQoSStates(batchSize);
+            
+            int retryCount = 0;
+            for (QoSState qosState : timeoutStates) {
+                try {
+                    if (retryQoSMessage(qosState)) {
+                        retryCount++;
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to retry QoS message: clientId={}, packetId={}", 
+                             qosState.getClientId(), qosState.getPacketId(), e);
+                }
+            }
+            
+            if (retryCount > 0) {
+                log.info("Retried {} timeout QoS messages", retryCount);
+            }
+            
+            return retryCount;
+            
+        } catch (Exception e) {
+            log.error("Failed to retry timeout QoS messages", e);
+            return 0;
+        }
+    }
+    
+    /**
+     * 清理过期的QoS状态（带参数版本）
+     *
+     * @param batchSize 批处理大小
+     * @return 清理的数量
+     */
     public int cleanupExpiredQoSStates(int batchSize) {
         try {
             List<QoSState> expiredStates = getExpiredQoSStates(batchSize);

@@ -1,1 +1,126 @@
-spring.application.name=vmqtt-core
+spring:
+  application:
+    name: vmqtt-core
+
+server:
+  port: 8080
+
+# V-MQTT认证配置
+vmqtt:
+  auth:
+    # 是否启用认证
+    enabled: false
+    # 认证模式：MEMORY, DATABASE, EXTERNAL
+    mode: MEMORY
+    # 是否允许匿名连接
+    allow-anonymous: true
+    
+    # 预配置用户列表
+    users:
+      - client-id: admin
+        username: admin
+        password: admin123
+        role: admin
+        enabled: true
+        permissions:
+          can-connect: true
+          max-qos: 2
+          max-message-size: 10485760  # 10MB
+          max-queue-size: 10000
+          rate-limit: 1000
+          session-expiry-interval: 86400  # 24小时
+          publish-topics:
+            - "#"  # 允许发布到所有主题
+          subscribe-topics:
+            - "#"  # 允许订阅所有主题
+        attributes:
+          description: "默认管理员账户"
+          
+      - client-id: user001
+        username: testuser
+        password: testpass
+        role: user
+        enabled: true
+        permissions:
+          can-connect: true
+          max-qos: 1
+          max-message-size: 1048576  # 1MB
+          max-queue-size: 1000
+          rate-limit: 100
+          session-expiry-interval: 3600  # 1小时
+          publish-topics:
+            - "user/+/data"
+            - "device/+/status"
+          subscribe-topics:
+            - "user/+/data"
+            - "device/+/status"
+            - "broadcast/+"
+          deny-publish-topics:
+            - "$SYS/+"
+          deny-subscribe-topics:
+            - "$SYS/+"
+        attributes:
+          description: "测试用户账户"
+    
+    # 默认用户权限
+    default-permissions:
+      can-connect: true
+      max-qos: 1
+      max-message-size: 1048576  # 1MB
+      max-queue-size: 1000
+      rate-limit: 100
+      session-expiry-interval: 3600  # 1小时
+      publish-topics:
+        - "user/+/data"
+        - "device/+/status"
+      subscribe-topics:
+        - "user/+/data"
+        - "device/+/status"
+        - "broadcast/+"
+      deny-publish-topics:
+        - "$SYS/+"
+      deny-subscribe-topics:
+        - "$SYS/+"
+    
+    # 密码配置
+    password:
+      algorithm: SHA-256
+      use-salt: true
+      salt-length: 16
+      min-length: 6
+      expiry-days: 365
+    
+    # 会话配置
+    session:
+      default-expiry-interval: 3600  # 1小时
+      max-expiry-interval: 86400     # 24小时
+      allow-duplicate-connections: false
+      cleanup-interval: 300          # 5分钟
+    
+    # 权限控制配置
+    authorization:
+      topic-permission-enabled: true
+      qos-permission-enabled: true
+      rate-limit-enabled: true
+      permission-cache-time: 300     # 5分钟
+      system-topic-prefixes:
+        - "$SYS/"
+      admin-roles:
+        - "admin"
+        - "root"
+
+# 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    com.vmqtt: DEBUG
+    root: INFO

@@ -229,8 +229,8 @@ public class NettyOptimizationConfig {
         // TCP快速回收
         options.put(EpollChannelOption.TCP_QUICKACK, true);
         
-        // TCP拥塞控制算法
-        options.put(EpollChannelOption.TCP_CONGESTION, "bbr");
+        // TCP拥塞控制算法 - 注意：此选项可能不在所有Netty版本中可用
+        // options.put(EpollChannelOption.TCP_CONGESTION, "bbr");
         
         log.info("添加了Epoll子Channel优化选项");
     }

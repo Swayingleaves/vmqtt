@@ -67,7 +67,7 @@ class MessageRouterImplTest {
         
         // 路由消息
         MessageRouter.RouteResult result = messageRouter.routeMessage(
-            "publisher", "test/topic", payload, MqttQos.QOS_1, false).join();
+            "publisher", "test/topic", payload, MqttQos.AT_LEAST_ONCE, false).join();
 
         // 验证路由结果
         assertNotNull(result);
@@ -106,7 +106,7 @@ class MessageRouterImplTest {
         
         // 路由消息
         MessageRouter.RouteResult result = messageRouter.routeMessage(
-            "publisher", "test/topic", payload, MqttQos.QOS_1, false).join();
+            "publisher", "test/topic", payload, MqttQos.AT_LEAST_ONCE, false).join();
 
         // 验证路由结果
         assertNotNull(result);
@@ -294,7 +294,7 @@ class MessageRouterImplTest {
 
         // 路由消息，触发事件
         ByteBuf payload = Unpooled.copiedBuffer("test message", StandardCharsets.UTF_8);
-        messageRouter.routeMessage("publisher", "test/topic", payload, MqttQos.QOS_1, false).join();
+        messageRouter.routeMessage("publisher", "test/topic", payload, MqttQos.AT_LEAST_ONCE, false).join();
 
         // 验证事件被触发
         assertTrue(routingStarted.get());
@@ -334,13 +334,13 @@ class MessageRouterImplTest {
      * 创建测试用的排队消息
      */
     private QueuedMessage createTestMessage(String messageId, String topic, String payloadText) {
-        ByteBuf payload = Unpooled.copiedBuffer(payloadText, StandardCharsets.UTF_8);
+        byte[] payloadBytes = payloadText.getBytes(StandardCharsets.UTF_8);
         
         return QueuedMessage.builder()
                 .messageId(messageId)
                 .topic(topic)
-                .payload(payload)
-                .qos(MqttQos.QOS_1)
+                .payload(payloadBytes)
+                .qos(MqttQos.AT_LEAST_ONCE)
                 .retain(false)
                 .createdAt(LocalDateTime.now())
                 .build();

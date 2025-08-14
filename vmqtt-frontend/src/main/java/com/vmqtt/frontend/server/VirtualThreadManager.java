@@ -76,34 +76,34 @@ public class VirtualThreadManager {
         threadMXBean = ManagementFactory.getThreadMXBean();
         
         // 注册JVM线程指标
-        Gauge.builder("vmqtt.threads.total")
+        Gauge.builder("vmqtt.threads.total", this, VirtualThreadManager::getTotalThreadCount)
             .description("总线程数")
-            .register(meterRegistry, this, VirtualThreadManager::getTotalThreadCount);
+            .register(meterRegistry);
             
-        Gauge.builder("vmqtt.threads.virtual")
+        Gauge.builder("vmqtt.threads.virtual", this, VirtualThreadManager::getVirtualThreadCount)
             .description("虚拟线程数")
-            .register(meterRegistry, this, VirtualThreadManager::getVirtualThreadCount);
+            .register(meterRegistry);
         
         // 注册任务执行指标
-        Gauge.builder("vmqtt.tasks.mqtt.active")
+        Gauge.builder("vmqtt.tasks.mqtt.active", this, vm -> vm.mqttTaskCount.get())
             .description("活跃MQTT任务数")
-            .register(meterRegistry, this, vm -> vm.mqttTaskCount.get());
+            .register(meterRegistry);
             
-        Gauge.builder("vmqtt.tasks.connection.active")
+        Gauge.builder("vmqtt.tasks.connection.active", this, vm -> vm.connectionTaskCount.get())
             .description("活跃连接任务数")
-            .register(meterRegistry, this, vm -> vm.connectionTaskCount.get());
+            .register(meterRegistry);
             
-        Gauge.builder("vmqtt.tasks.message.active")
+        Gauge.builder("vmqtt.tasks.message.active", this, vm -> vm.messageTaskCount.get())
             .description("活跃消息任务数")
-            .register(meterRegistry, this, vm -> vm.messageTaskCount.get());
+            .register(meterRegistry);
             
-        Gauge.builder("vmqtt.tasks.auth.active")
+        Gauge.builder("vmqtt.tasks.auth.active", this, vm -> vm.authTaskCount.get())
             .description("活跃认证任务数")
-            .register(meterRegistry, this, vm -> vm.authTaskCount.get());
+            .register(meterRegistry);
             
-        Gauge.builder("vmqtt.tasks.heartbeat.active")
+        Gauge.builder("vmqtt.tasks.heartbeat.active", this, vm -> vm.heartbeatTaskCount.get())
             .description("活跃心跳任务数")
-            .register(meterRegistry, this, vm -> vm.heartbeatTaskCount.get());
+            .register(meterRegistry);
         
         log.info("虚拟线程监控指标已初始化");
     }

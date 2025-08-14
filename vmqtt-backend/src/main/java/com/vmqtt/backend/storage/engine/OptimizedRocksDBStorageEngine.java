@@ -9,6 +9,7 @@ package com.vmqtt.backend.storage.engine;
 import com.vmqtt.backend.config.RocksDBConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.rocksdb.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "vmqtt.storage.rocksdb.optimized.enabled", havingValue = "true", matchIfMissing = false)
 public class OptimizedRocksDBStorageEngine {
     
     private final RocksDBConfig config;
@@ -179,7 +181,7 @@ public class OptimizedRocksDBStorageEngine {
             // 压缩配置
             if (config.isCompressionEnabled()) {
                 dbOptions.setCompressionType(CompressionType.valueOf(config.getCompressionType()));
-                dbOptions.setBottommostCompressionType(CompressionType.ZSTD);
+                dbOptions.setBottommostCompressionType(CompressionType.LZ4_COMPRESSION);
             } else {
                 dbOptions.setCompressionType(CompressionType.NO_COMPRESSION);
             }
@@ -214,8 +216,9 @@ public class OptimizedRocksDBStorageEngine {
             dbOptions.setWalDir(config.getWalDir());
             dbOptions.setWalSizeLimitMB(config.getWalSizeLimitMb());
             dbOptions.setWalTtlSeconds(config.getWalTtlSeconds());
-            dbOptions.setDisableWal(config.isDisableWal());
-            dbOptions.setSync(config.isSyncWrites());
+            // 注意：setDisableWal和setSync在某些RocksDB版本中可能不存在
+            // dbOptions.setDisableWal(config.isDisableWal());
+            // dbOptions.setSync(config.isSyncWrites());
             
             // 高级性能优化配置
             configureAdvancedPerformanceOptions();
@@ -376,7 +379,8 @@ public class OptimizedRocksDBStorageEngine {
     private void openDatabase() throws RocksDBException {
         List<ColumnFamilyHandle> handles = new ArrayList<>();
         
-        rocksDB = RocksDB.open(dbOptions, config.getDataDir(), columnFamilyDescriptors, handles);
+        DBOptions dbOpts = new DBOptions(dbOptions);
+        rocksDB = RocksDB.open(dbOpts, config.getDataDir(), columnFamilyDescriptors, handles);
         
         // 存储列族句柄
         for (int i = 0; i < columnFamilyDescriptors.size(); i++) {

@@ -24,7 +24,7 @@ vmqtt:
   storage:
     rocksdb:
       # 基础配置
-      data-dir: ./data/rocksdb
+      data-dir: ./data/rocksdb-optimized
       wal-dir: ./data/wal
       backup-dir: ./data/backup
       
@@ -40,7 +40,7 @@ vmqtt:
       
       # 压缩配置
       compression-enabled: true
-      compression-type: SNAPPY
+      compression-type: LZ4_COMPRESSION
       max-background-compactions: 8
       max-background-flushes: 2
       
@@ -59,7 +59,7 @@ vmqtt:
       sync-writes: false
       
       # 高级优化
-      enable-pipelined-write: true
+      enable-pipelined-write: false  # 与atomic-flush不兼容，优先选择atomic-flush
       enable-write-thread-adaptive-yield: true
       atomic-flush: true
       pre-allocate-write-buffers: true
@@ -71,29 +71,29 @@ vmqtt:
       # 列族特定配置
       session-cf:
         write-buffer-size: 67108864    # 64MB
-        compression-type: LZ4
+        compression-type: LZ4_COMPRESSION
         ttl-seconds: 86400             # 1天
         enable-bloom-filter: true
       
       message-cf:
         write-buffer-size: 134217728   # 128MB
-        compression-type: ZSTD
+        compression-type: LZ4_COMPRESSION
         ttl-seconds: 2592000           # 30天
         enable-bloom-filter: true
       
       subscription-cf:
         write-buffer-size: 33554432    # 32MB
-        compression-type: SNAPPY
+        compression-type: LZ4_COMPRESSION
         enable-bloom-filter: true
       
       retained-cf:
         write-buffer-size: 67108864    # 64MB
-        compression-type: ZSTD
+        compression-type: LZ4_COMPRESSION
         enable-bloom-filter: true
       
       qos-cf:
         write-buffer-size: 33554432    # 32MB
-        compression-type: SNAPPY
+        compression-type: LZ4_COMPRESSION
         ttl-seconds: 604800            # 7天
         enable-bloom-filter: true
 

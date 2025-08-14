@@ -18,7 +18,9 @@ import org.springframework.context.annotation.ComponentScan;
 @Slf4j
 @SpringBootApplication
 @ComponentScan(basePackages = {
-    "com.vmqtt.vmqttcore",
+    "com.vmqtt.vmqttcore.config",
+    "com.vmqtt.vmqttcore.controller", 
+    "com.vmqtt.vmqttcore.service",
     "com.vmqtt.common.service.impl"
 })
 public class VmqttCoreApplication {

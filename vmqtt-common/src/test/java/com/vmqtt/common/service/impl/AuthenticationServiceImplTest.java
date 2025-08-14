@@ -7,6 +7,7 @@
 package com.vmqtt.common.service.impl;
 
 import com.vmqtt.common.model.ClientConnection;
+import com.vmqtt.common.protocol.MqttVersion;
 import com.vmqtt.common.protocol.packet.connect.MqttConnectFlags;
 import com.vmqtt.common.protocol.packet.connect.MqttConnectPacket;
 import com.vmqtt.common.protocol.packet.connect.MqttConnectPayload;
@@ -316,7 +317,7 @@ class AuthenticationServiceImplTest {
      */
     private MqttConnectPacket createConnectPacket(String clientId, String username, String password) {
         MqttConnectVariableHeader variableHeader = new MqttConnectVariableHeader(
-            "MQTT", 4, new MqttConnectFlags(true, true, false, 0, false, true, 2), 60, null
+            MqttVersion.MQTT_3_1_1, new MqttConnectFlags(true, true, 2, false, true, true), 60, null
         );
 
         MqttConnectPayload payload = new MqttConnectPayload(clientId, username, password.getBytes(), null, null);

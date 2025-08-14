@@ -44,7 +44,7 @@ public class MqttProtocolHandler extends SimpleChannelInboundHandler<MqttPacket>
         connectionManager.updateLastActivity(ctx.channel());
         
         // 根据消息类型分发处理
-        MqttPacketType packetType = packet.getFixedHeader().getPacketType();
+        MqttPacketType packetType = packet.getFixedHeader().packetType();
         
         log.debug("接收到MQTT消息: {} from {}", packetType, ctx.channel().remoteAddress());
         
@@ -88,7 +88,7 @@ public class MqttProtocolHandler extends SimpleChannelInboundHandler<MqttPacket>
      * 处理CONNECT消息
      */
     private void handleConnect(ChannelHandlerContext ctx, MqttConnectPacket packet) {
-        log.debug("处理CONNECT消息: clientId={}", packet.getPayload().getClientId());
+        log.debug("处理CONNECT消息: clientId={}", packet.payload().clientId());
         
         threadManager.executeConnectionTask(() -> {
             try {
@@ -106,15 +106,15 @@ public class MqttProtocolHandler extends SimpleChannelInboundHandler<MqttPacket>
      */
     private void handlePublish(ChannelHandlerContext ctx, MqttPublishPacket packet) {
         log.debug("处理PUBLISH消息: topic={}, qos={}", 
-            packet.getVariableHeader().getTopicName(), 
-            packet.getFixedHeader().getQos());
+            packet.variableHeader().topicName(), 
+            packet.fixedHeader().qos());
         
         threadManager.executeMessageTask(() -> {
             try {
                 messageProcessor.processPublish(ctx.channel(), packet);
                 
                 // 根据QoS等级发送确认
-                if (packet.getFixedHeader().getQos().ordinal() >= 1) {
+                if (packet.fixedHeader().qos().ordinal() >= 1) {
                     MqttPubackPacket pubackPacket = messageProcessor.createPubackPacket(packet);
                     ctx.writeAndFlush(pubackPacket);
                 }
@@ -128,7 +128,7 @@ public class MqttProtocolHandler extends SimpleChannelInboundHandler<MqttPacket>
      * 处理PUBACK消息
      */
     private void handlePuback(ChannelHandlerContext ctx, MqttPubackPacket packet) {
-        log.debug("处理PUBACK消息: messageId={}", packet.getVariableHeader().getMessageId());
+        log.debug("处理PUBACK消息: messageId={}", packet.packetId());
         
         threadManager.executeMessageTask(() -> {
             try {
@@ -143,7 +143,7 @@ public class MqttProtocolHandler extends SimpleChannelInboundHandler<MqttPacket>
      * 处理SUBSCRIBE消息
      */
     private void handleSubscribe(ChannelHandlerContext ctx, MqttSubscribePacket packet) {
-        log.debug("处理SUBSCRIBE消息: messageId={}", packet.getVariableHeader().getMessageId());
+        log.debug("处理SUBSCRIBE消息: messageId={}", packet.variableHeader().packetId());
         
         threadManager.executeMessageTask(() -> {
             try {

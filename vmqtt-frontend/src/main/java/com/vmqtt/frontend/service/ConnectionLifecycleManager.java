@@ -290,9 +290,9 @@ public class ConnectionLifecycleManager {
             .connectionId(connectionId)
             .channel(channel)
             .remoteAddress(channel.remoteAddress().toString())
-            .connectTime(LocalDateTime.now())
-            .lastActivityTime(LocalDateTime.now())
-            .connected(true)
+            .connectedAt(LocalDateTime.now())
+            .lastActivity(LocalDateTime.now())
+            .connectionState(ClientConnection.ConnectionState.CONNECTED)
             .build();
     }
     

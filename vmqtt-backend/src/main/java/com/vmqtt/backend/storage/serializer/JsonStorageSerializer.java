@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
  */
 @Slf4j
 @Component
-public class JsonStorageSerializer<T> implements StorageSerializer<T> {
+public class JsonStorageSerializer implements StorageSerializer<Object> {
     
     private static final ObjectMapper OBJECT_MAPPER;
     
@@ -48,19 +48,14 @@ public class JsonStorageSerializer<T> implements StorageSerializer<T> {
         OBJECT_MAPPER.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
     }
     
-    private final Class<T> targetType;
-    
     /**
-     * 构造函数
-     *
-     * @param targetType 目标类型
+     * 无参构造函数
      */
-    public JsonStorageSerializer(Class<T> targetType) {
-        this.targetType = targetType;
+    public JsonStorageSerializer() {
     }
     
     @Override
-    public byte[] serialize(T object) throws SerializationException {
+    public byte[] serialize(Object object) throws SerializationException {
         if (object == null) {
             return null;
         }
@@ -76,7 +71,30 @@ public class JsonStorageSerializer<T> implements StorageSerializer<T> {
     }
     
     @Override
-    public T deserialize(byte[] bytes) throws SerializationException {
+    public Object deserialize(byte[] bytes) throws SerializationException {
+        if (bytes == null || bytes.length == 0) {
+            return null;
+        }
+        
+        try {
+            String json = new String(bytes, StandardCharsets.UTF_8);
+            return OBJECT_MAPPER.readValue(json, Object.class);
+        } catch (IOException e) {
+            log.error("Failed to deserialize object: {}", e.getMessage());
+            throw new SerializationException("Failed to deserialize object", e);
+        }
+    }
+    
+    /**
+     * 反序列化为指定类型
+     *
+     * @param bytes 字节数组
+     * @param targetType 目标类型
+     * @param <T> 类型参数
+     * @return 反序列化对象
+     * @throws SerializationException 序列化异常
+     */
+    public <T> T deserialize(byte[] bytes, Class<T> targetType) throws SerializationException {
         if (bytes == null || bytes.length == 0) {
             return null;
         }
@@ -106,14 +124,12 @@ public class JsonStorageSerializer<T> implements StorageSerializer<T> {
     }
     
     /**
-     * 创建特定类型的序列化器
+     * 创建序列化器实例
      *
-     * @param targetType 目标类型
-     * @param <U> 目标类型参数
      * @return 序列化器实例
      */
-    public static <U> JsonStorageSerializer<U> forType(Class<U> targetType) {
-        return new JsonStorageSerializer<>(targetType);
+    public static JsonStorageSerializer create() {
+        return new JsonStorageSerializer();
     }
     
     /**
